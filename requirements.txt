@@ -1,2 +1,2 @@
 flask
-psycopg2-binaryflask
+psycopg2-binary
